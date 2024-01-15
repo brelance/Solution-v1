@@ -4,7 +4,7 @@
 use bytes::BufMut;
 
 use super::Block;
-use std::{collections::BTreeMap, io::Read};
+use std::{collections::{BTreeMap}, io::Read};
 
 /// Builds a block.
 pub struct BlockBuilder {
@@ -85,10 +85,28 @@ impl BlockBuilder {
     }
 }
 
+struct Key {
+    key: Vec<u8>,
+}
+
+impl PartialEq for Key {
+    fn eq(&self, other: &Self) -> bool {
+        self.key.as_slice() == other.key.as_slice()
+    }
+}
+
+impl PartialOrd for Key {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.key.as_slice().cmp(&other.key.as_slice()))
+    }
+}
+
 
 #[cfg(test)]
 mod user_tests {
     use super::BlockBuilder;
+    use std::collections::BTreeMap;
+    use std::string;
     #[test]
     fn build_test() {
         let mut block_builder = BlockBuilder::new(4096);
@@ -98,5 +116,13 @@ mod user_tests {
 
         let block = block_builder.build();
         
+    }
+
+    #[test]
+    fn string_test() {
+        let string1 = "11".to_string();
+        let string2 = "2".to_string();
+        
+        println!("string1.cmp(&string2): {:?}", string1.cmp(&string2)); // Ordering::Less
     }
 }
