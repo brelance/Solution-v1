@@ -32,11 +32,12 @@ impl Block {
     /// Encode the internal data to the data layout illustrated in the tutorial
     /// Note: You may want to recheck if any of the expected field is missing from your output
     pub fn encode(&self) -> Bytes {
-        let mut encoded = self.data.clone();
+        let mut encoded: Vec<u8> = self.data.clone();
         for &offset in self.offsets.iter() {
             encoded.put_u16(offset);
         }
 
+        // Add nums of elements
         encoded.put_u16(self.offsets.len() as u16);
         Bytes::from(encoded)
     }
@@ -65,6 +66,11 @@ impl Block {
         
         Block {data: kv_data, offsets} 
         // let block_builder: BlockBuilder = BlockBuilder::new(BLOCK_SIZE);
+    }
+
+    pub fn size(&self) -> usize {
+        // length of data + length of keys + length of nums
+        return self.data.len() + self.offsets.len() * 2 + 2;
     }
 }
 

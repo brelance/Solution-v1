@@ -1,10 +1,7 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use bytes::BufMut;
 
 use super::Block;
-use std::{collections::{BTreeMap}, io::Read};
+use std::{collections::{BTreeMap}, io::Read, intrinsics::drop_in_place};
 
 /// Builds a block.
 pub struct BlockBuilder {
@@ -64,22 +61,28 @@ impl BlockBuilder {
 
                 offset = offset + 2 + key_len + 2 + value_len;
         }
-        // self.buffer
-        //     .iter()
-        //     .map(|(key, value)| {
-        //         offsets.push(offset);
+            
+        Block {data, offsets}    
+    }
 
-        //         let key_len = key.len() as u16;
-        //         let value_len = value.len() as u16;
+    pub fn build_mut(&mut self) -> Block {
+        let mut data: Vec<u8> = Vec::new();
+        let mut offsets: Vec<u16> = Vec::new();
+        let mut offset: u16 = 0;
 
-        //         data.extend_from_slice(&key_len.to_ne_bytes());
-        //         data.extend_from_slice(key.as_slice());
-        //         data.extend_from_slice(&value_len.to_ne_bytes());
-        //         data.extend_from_slice(value.as_slice());
+        for (key, value) in self.buffer.iter() {
+                offsets.push(offset);
 
-        //         offset = offset + 2 + key_len + 2 + value_len;
-        //     });
-        
+                let key_len = key.len() as u16;
+                let value_len = value.len() as u16;
+
+                data.put_u16(key_len);
+                data.extend_from_slice(key.as_slice());
+                data.put_u16(value_len);
+                data.extend_from_slice(value.as_slice());
+
+                offset = offset + 2 + key_len + 2 + value_len;
+        }
             
         Block {data, offsets}    
     }

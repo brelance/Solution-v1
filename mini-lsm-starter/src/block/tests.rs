@@ -110,6 +110,7 @@ fn test_block_seek_key() {
                 as_bytes(&key_of(i)),
                 as_bytes(key)
             );
+            
             assert_eq!(
                 value,
                 value_of(i),
