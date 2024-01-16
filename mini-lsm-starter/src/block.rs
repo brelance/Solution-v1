@@ -4,7 +4,6 @@
 mod builder;
 mod iterator;
 
-use std::{io::Read, iter, ops::Index};
 
 pub use builder::BlockBuilder;
 /// You may want to check `bytes::BufMut` out when manipulating continuous chunks of memory
@@ -21,7 +20,7 @@ pub use iterator::BlockIterator;
 /// | Entry #1 | Entry #2 | ... | Entry #N | Offset #1 | Offset #2 | ... | Offset #N | num_of_elements |
 /// ----------------------------------------------------------------------------------------------------
 
-const BLOCK_SIZE: usize =  4096;
+pub const BLOCK_SIZE: usize =  4096;
 
 #[derive(Debug, Clone)]
 pub struct Block {

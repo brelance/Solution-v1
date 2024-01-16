@@ -13,7 +13,7 @@ pub use builder::SsTableBuilder;
 use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
-use crate::block::{Block, self};
+use crate::block::{Block, self, BLOCK_SIZE};
 use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -155,7 +155,12 @@ impl SsTable {
 
     /// Read a block from the disk.
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
-        unimplemented!()
+        let meta = &self.block_metas[block_idx];
+        
+        let block_slice = self.file.read(meta.offset as u64, BLOCK_SIZE as u64)?;
+        let block = Block::decode(&block_slice);
+
+        Ok(Arc::new(block))
     }
 
     /// Read a block from disk, with block cache. (Day 4)

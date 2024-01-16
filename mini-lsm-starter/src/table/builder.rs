@@ -55,8 +55,9 @@ impl SsTableBuilder {
             self.offset += self.block_size as u32;
             self.blocks.insert(block);
 
-            let new_block = BlockBuilder::new(self.block_size);
-            std::mem::replace(&mut self.blockbuilder, new_block);
+            let new_block_builder = BlockBuilder::new(self.block_size);
+            
+            self.blockbuilder = new_block_builder;
             self.blockbuilder.add(key, value);
         }
     }

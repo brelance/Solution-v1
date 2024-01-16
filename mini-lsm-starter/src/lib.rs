@@ -4,6 +4,7 @@ pub mod lsm_iterator;
 pub mod lsm_storage;
 pub mod mem_table;
 pub mod table;
+// pub mod error;
 
 #[cfg(test)]
 mod tests;
