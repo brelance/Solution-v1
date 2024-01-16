@@ -12,12 +12,13 @@ use super::{BlockMeta, SsTable};
 use crate::lsm_storage::BlockCache;
 use crate::block::{BlockBuilder, Block, self};
 use bytes::{Bytes, BytesMut, BufMut};
+use std::collections::BTreeSet;
 
 /// Builds an SSTable from key-value pairs.
 pub struct SsTableBuilder {
     pub(super) meta: Vec<BlockMeta>,
     blockbuilder: BlockBuilder,
-    blocks: Vec<Block>,
+    blocks: BTreeSet<Block>,
     block_size: usize,
     is_first_key: bool,
     offset: u32,
@@ -29,12 +30,12 @@ impl SsTableBuilder {
     pub fn new(block_size: usize) -> Self {
         let blockbuilder = BlockBuilder::new(block_size);
         let meta = Vec::new();
-        let blocks: Vec<Block> = Vec::new();
+        let blocks = BTreeSet::new();
 
         Self {
             meta, 
             blockbuilder, 
-            blocks, 
+            blocks,
             block_size, 
             is_first_key: true,
             offset: 0,
@@ -46,10 +47,10 @@ impl SsTableBuilder {
     pub fn add(&mut self, key: &[u8], value: &[u8]) {
         if !self.blockbuilder.add(key, value) {
             //block is full
-            let block = self.blockbuilder.build_mut();
+            let block = self.blockbuilder.build_ref();
             
-            self.offset += block.size() as u32;
-            self.blocks.push(block);
+            self.offset += self.block_size as u32;
+            self.blocks.insert(block);
             let new_block = BlockBuilder::new(self.block_size);
             std::mem::replace(&mut self.blockbuilder, new_block);
 
@@ -78,37 +79,41 @@ impl SsTableBuilder {
     /// Builds the SSTable and writes it to the given path. No need to actually write to disk until
     /// chapter 4 block cache.
     pub fn build(
-        self,
+        mut self,
         id: usize,
         block_cache: Option<Arc<BlockCache>>,
         path: impl AsRef<Path>,
     ) -> Result<SsTable> {
-        let block_meta_offset = self.total_block_size() + self.total_meta_size();
+        // push last block
+        if self.blockbuilder.num_of_elements != 0 {
+            let last_block = self.blockbuilder.build_ref();
+            self.blocks.insert(last_block);
+        }
+
+
+        let block_meta_offset = self.total_block_size();
 
         let blocks = self.blocks.into_iter().map(|block| block.encode());
-        let mut file = BytesMut::new();
+        let mut file = Vec::new();
 
         for block in blocks {
             file.extend_from_slice(&block);
         }
+
+        BlockMeta::encode_block_meta(&self.meta, &mut file);
         
-        let mut buf = Vec::new();
-        BlockMeta::encode_block_meta(&self.meta, &mut buf);
-
-        file.extend_from_slice(&buf);
-
         //put block_meta_offset
         file.put_u32(block_meta_offset as u32);
         
         Ok(SsTable {
-            file: super::FileObject(file.freeze()),
+            file: super::FileObject(Bytes::from(file)),
             block_metas: self.meta,
             block_meta_offset,
         })
     }
 
     fn total_block_size(&self) -> usize {
-        self.blocks.iter().fold(0, |acc, block| acc + block.size())
+        self.blocks.len() * self.block_size
     }
 
     fn total_meta_size(&self)-> usize {
@@ -142,11 +147,11 @@ mod test {
     // builder.add(b"6", b"6666");
 
     let path = PathBuf::from(".\test").join("my_test");
-    let mut table = builder.build(1, None, path).unwrap();
-
+    let mut table: SsTable = builder.build(1, None, path).unwrap();
+    let meta = table.block_metas;
+    let file = SsTable::open_for_test(table.file).unwrap();
+    assert_eq!(meta, file.block_metas)
     
-
-    
-  }  
+  } 
 
 } 

@@ -23,6 +23,7 @@ pub use iterator::BlockIterator;
 
 const BLOCK_SIZE: usize =  4096;
 
+#[derive(Debug, Clone)]
 pub struct Block {
     data: Vec<u8>,
     offsets: Vec<u16>,
@@ -72,7 +73,39 @@ impl Block {
         // length of data + length of keys + length of nums
         return self.data.len() + self.offsets.len() * 2 + 2;
     }
+
+    fn first_key(&self) -> Vec<u8> {
+        let mut key_len_buf = [0u8; 2];
+        key_len_buf[0] = self.data[0];
+        key_len_buf[1] = self.data[1];
+
+        let key_len = u16::from_be_bytes(key_len_buf) as usize;
+
+        self.data[2..key_len].to_vec()
+    }
 }
+
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.first_key() == other.first_key()
+    }
+}
+
+impl PartialOrd for Block {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.first_key().cmp(&other.first_key()))
+    }
+}
+
+impl Eq for Block {}
+
+
+impl Ord for Block {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.first_key().cmp(&other.first_key())
+    }
+}
+
 
 #[cfg(test)]
 mod tests;
@@ -107,6 +140,50 @@ mod test {
         let mut block =  builder.build();
         let data = block.encode();
         Block::decode(&data);
+    }
+
+    #[test]
+    fn compare_block() {
+        let mut builder = BlockBuilder::new(32);
+        builder.add(b"233", b"233333");
+        builder.add(b"122", b"122222");
+        let block = builder.build();
+
+        let mut builder1 = BlockBuilder::new(32);
+        builder1.add(b"333", b"233333");
+        builder1.add(b"422", b"122222");
+        let block1 = builder1.build();
+
+        let mut builder2 = BlockBuilder::new(32);
+        builder2.add(b"733", b"233333");
+        builder2.add(b"922", b"122222");
+        let block2 = builder2.build();
+
+        let mut builder3: BlockBuilder = BlockBuilder::new(32);
+        builder3.add(b"033", b"233333");
+        builder3.add(b"122", b"122222");
+        let block3 = builder3.build();
+
+        assert_eq!(block1.cmp(&block), std::cmp::Ordering::Greater);
+        assert_eq!(block.cmp(&block1), std::cmp::Ordering::Less);
+
+        let block_ = block3.clone();
+
+        let mut btset = std::collections::BTreeSet::new();
+        btset.insert(block1);
+        btset.insert(block);
+        btset.insert(block2);
+        btset.insert(block3);
+
+        assert_eq!(btset.first(), Some(&block_));
+    }
+
+    #[test]
+    fn test_vec_sort() {
+        let t1 = b"Key_3".to_vec();
+        let t2 = b"Key_12".to_vec();
+        assert_eq!(t1.cmp(&t2), std::cmp::Ordering::Greater);
+        
     }
 }
 

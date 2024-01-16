@@ -206,7 +206,7 @@ mod test {
 
     #[test]
     fn iterator_seek_key_test() {
-        let mut builder = BlockBuilder::new(4096);
+        let mut builder = BlockBuilder::new(1024);
         builder.add(b"1", b"1");
         builder.add(b"2", b"1");
         builder.add(b"4", b"1");

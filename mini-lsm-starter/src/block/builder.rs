@@ -8,7 +8,7 @@ pub struct BlockBuilder {
     block_size: usize,
     buffer: BTreeMap<Vec<u8>, Vec<u8>>,
     rest_size: usize,
-    num_of_elements: usize,
+    pub num_of_elements: usize,
 }
 
 
@@ -71,9 +71,9 @@ impl BlockBuilder {
         Block {data, offsets}    
     }
 
-    pub fn build_mut(&mut self) -> Block {
-        let data_vec_size = self.block_size - self.num_of_elements * 2 + 2;
-        let mut data: Vec<u8> = vec![0u8; data_vec_size];
+    pub fn build_ref(&self) -> Block {
+        let data_vec_size = self.block_size - self.num_of_elements * 2 - 2;
+        let mut data: Vec<u8> = Vec::with_capacity(data_vec_size);
 
         let mut offsets: Vec<u16> = Vec::new();
         let mut offset: u16 = 0;
@@ -91,7 +91,11 @@ impl BlockBuilder {
 
                 offset = offset + 2 + key_len + 2 + value_len;
         }
-            
+
+        while data.len() < data.capacity() {
+            data.push(0);
+        }
+
         Block {data, offsets}    
     }
 }
