@@ -74,14 +74,14 @@ impl Block {
         return self.data.len() + self.offsets.len() * 2 + 2;
     }
 
-    fn first_key(&self) -> Vec<u8> {
+    pub fn first_key(&self) -> Vec<u8> {
         let mut key_len_buf = [0u8; 2];
         key_len_buf[0] = self.data[0];
         key_len_buf[1] = self.data[1];
 
         let key_len = u16::from_be_bytes(key_len_buf) as usize;
 
-        self.data[2..key_len].to_vec()
+        self.data[2..key_len + 2].to_vec()
     }
 }
 

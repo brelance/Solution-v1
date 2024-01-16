@@ -20,7 +20,7 @@ pub struct SsTableBuilder {
     blockbuilder: BlockBuilder,
     blocks: BTreeSet<Block>,
     block_size: usize,
-    is_first_key: bool,
+    // is_first_key: bool,
     offset: u32,
     // Add other fields you need.
 }
@@ -37,7 +37,7 @@ impl SsTableBuilder {
             blockbuilder, 
             blocks,
             block_size, 
-            is_first_key: true,
+            // is_first_key: true,
             offset: 0,
         }
     }
@@ -54,17 +54,17 @@ impl SsTableBuilder {
             let new_block = BlockBuilder::new(self.block_size);
             std::mem::replace(&mut self.blockbuilder, new_block);
 
-            self.is_first_key = true;
+            // self.is_first_key = true;
         }
 
-        if self.is_first_key {
-            let meta: BlockMeta = BlockMeta {
-                offset: self.offset,
-                first_key: Bytes::copy_from_slice(key),
-            };
-            self.meta.push(meta);
-            self.is_first_key = false;
-        }
+        // if self.is_first_key {
+        //     let meta: BlockMeta = BlockMeta {
+        //         offset: self.offset,
+        //         first_key: Bytes::copy_from_slice(key),
+        //     };
+        //     self.meta.push(meta);
+        //     self.is_first_key = false;
+        // }
 
         self.blockbuilder.add(key, value);
         
@@ -92,10 +92,20 @@ impl SsTableBuilder {
 
 
         let block_meta_offset = self.total_block_size();
+        let mut offset: u32 = 0;
 
-        let blocks = self.blocks.into_iter().map(|block| block.encode());
+        let blocks = self.blocks.into_iter().map(|block| {
+            self.meta.push(BlockMeta {
+                offset,
+                first_key: Bytes::from(block.first_key()),
+
+            });
+            offset += self.block_size as u32;
+            block.encode()
+        });
         let mut file = Vec::new();
 
+        let mut offset = 0;
         for block in blocks {
             file.extend_from_slice(&block);
         }
@@ -131,6 +141,9 @@ impl SsTableBuilder {
 mod test {
     use std::path::PathBuf;
 
+    use bytes::Buf;
+    use bytes::{BufMut, Bytes};
+
     use super::SsTableBuilder;
     use super::SsTable;
 
@@ -153,5 +166,20 @@ mod test {
     assert_eq!(meta, file.block_metas)
     
   } 
+
+  #[test]
+  fn test_get_u32() {
+    let mut v = Vec::new();
+    
+    v.put_u32(32);
+    v.put_u32(48);
+
+    let v_size = v.len();
+    let mut bytes = Bytes::from(v);
+    assert_eq!(bytes.get_u32(),32);
+    assert_eq!(bytes.get_u32(),48); 
+       
+    assert_eq!(v_size, bytes.len());
+  }
 
 } 

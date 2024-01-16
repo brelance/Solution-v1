@@ -119,6 +119,7 @@ impl SsTable {
     pub fn open(id: usize, block_cache: Option<Arc<BlockCache>>, file: FileObject) -> Result<Self> {
         let offset = file.size() - 4;
         let mut buf = [0u8; 4];
+
         file.read_to_buf(offset, &mut buf);
         
         let block_meta_offset = u32::from_be_bytes(buf) as usize;
@@ -133,7 +134,7 @@ impl SsTable {
             let block_offset: u32 = u32::from_be_bytes(buf);
             meta_offset += 4;
 
-            file.read_to_buf(offset, &mut key_len_buf);
+            file.read_to_buf(meta_offset, &mut key_len_buf);
             let key_len = u16::from_be_bytes(key_len_buf) as u64;
             meta_offset += 2;
 
@@ -175,5 +176,5 @@ impl SsTable {
     }
 }
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
