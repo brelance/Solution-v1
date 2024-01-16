@@ -29,12 +29,12 @@ impl BlockBuilder {
         let insert_size = key.len() + value.len() + 6;
         if self.rest_size < insert_size {
             return false;
+        } else {
+            self.buffer.insert(key.to_vec(), value.to_vec());
+            self.rest_size -= insert_size;
+            self.num_of_elements += 1;
+            return true;
         }
-
-        self.buffer.insert(key.to_vec(), value.to_vec());
-        self.rest_size -= insert_size;
-        self.num_of_elements += 1;
-        true
     }
 
     /// Check if there is no key-value pair in the block.

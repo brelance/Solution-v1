@@ -176,5 +176,5 @@ impl SsTable {
     }
 }
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;

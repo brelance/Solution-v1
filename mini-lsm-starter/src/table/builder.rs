@@ -45,29 +45,20 @@ impl SsTableBuilder {
     /// Adds a key-value pair to SSTable.
     /// Note: You should split a new block when the current block is full.(`std::mem::replace` may be of help here)
     pub fn add(&mut self, key: &[u8], value: &[u8]) {
-        if !self.blockbuilder.add(key, value) {
-            //block is full
-            let block = self.blockbuilder.build_ref();
+        if self.blockbuilder.add(key, value) {
+            return;
+
+        } else {
+            // block don't contain enough capacity and we need split it.
+            let block = self.blockbuilder.build_ref(); 
             
             self.offset += self.block_size as u32;
             self.blocks.insert(block);
+
             let new_block = BlockBuilder::new(self.block_size);
             std::mem::replace(&mut self.blockbuilder, new_block);
-
-            // self.is_first_key = true;
+            self.blockbuilder.add(key, value);
         }
-
-        // if self.is_first_key {
-        //     let meta: BlockMeta = BlockMeta {
-        //         offset: self.offset,
-        //         first_key: Bytes::copy_from_slice(key),
-        //     };
-        //     self.meta.push(meta);
-        //     self.is_first_key = false;
-        // }
-
-        self.blockbuilder.add(key, value);
-        
     }
 
     /// Get the estimated size of the SSTable.
@@ -105,7 +96,6 @@ impl SsTableBuilder {
         });
         let mut file = Vec::new();
 
-        let mut offset = 0;
         for block in blocks {
             file.extend_from_slice(&block);
         }
@@ -148,16 +138,11 @@ mod test {
     use super::SsTable;
 
   #[test]
-  fn builder_test() {
+  fn builder_test1() {
     let mut builder: SsTableBuilder = SsTableBuilder::new(16);
     builder.add(b"1", b"1111");
     builder.add(b"3", b"3333");
     builder.add(b"2", b"2222");
-
-    // builder.add(b"4", b"4444");
-    // builder.add(b"5", b"5555");
-
-    // builder.add(b"6", b"6666");
 
     let path = PathBuf::from(".\test").join("my_test");
     let mut table: SsTable = builder.build(1, None, path).unwrap();
@@ -168,18 +153,18 @@ mod test {
   } 
 
   #[test]
-  fn test_get_u32() {
-    let mut v = Vec::new();
-    
-    v.put_u32(32);
-    v.put_u32(48);
+  fn builder_test2() {
+    let mut builder: SsTableBuilder = SsTableBuilder::new(128);
+    builder.add(b"key_1", b"value_1");
+    builder.add(b"key_2", b"value_2");
+    builder.add(b"key_3", b"value_3");
 
-    let v_size = v.len();
-    let mut bytes = Bytes::from(v);
-    assert_eq!(bytes.get_u32(),32);
-    assert_eq!(bytes.get_u32(),48); 
-       
-    assert_eq!(v_size, bytes.len());
-  }
+    let path = PathBuf::from(".\test").join("my_test");
+    let mut table: SsTable = builder.build(1, None, path).unwrap();
+    let meta = table.block_metas;
+    let file = SsTable::open_for_test(table.file).unwrap();
+    assert_eq!(meta, file.block_metas)
+    
+  } 
 
 } 

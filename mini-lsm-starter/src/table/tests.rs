@@ -24,9 +24,12 @@ fn test_sst_build_two_blocks() {
     builder.add(b"44", b"22");
     builder.add(b"55", b"11");
     builder.add(b"66", b"22");
-    assert!(builder.meta.len() >= 2);
+
     let dir = tempdir().unwrap();
-    builder.build_for_test(dir.path().join("1.sst")).unwrap();
+
+    let ssTable = builder.build_for_test(dir.path().join("1.sst")).unwrap();
+
+    assert!(ssTable.block_metas.len() >= 2);
 }
 
 fn key_of(idx: usize) -> Vec<u8> {
