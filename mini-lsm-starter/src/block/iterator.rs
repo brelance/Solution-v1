@@ -28,7 +28,7 @@ impl BlockIterator {
 
     /// Creates a block iterator and seek to the first entry.
     pub fn create_and_seek_to_first(block: Arc<Block>) -> Self {
-        let (key, value) = BlockIterator::seek_key_within_within_index(block.clone(), 0);
+        let (key, value) = BlockIterator::seek_kv_within_index(block.clone(), 0);
         BlockIterator { 
             block, 
             key, 
@@ -68,7 +68,7 @@ impl BlockIterator {
     /// Seeks to the first key in the block.
     pub fn seek_to_first(&mut self) {
         let (key, value) =
-            BlockIterator::seek_key_within_within_index(self.block.clone(), 0);
+            BlockIterator::seek_kv_within_index(self.block.clone(), 0);
 
         self.key = key;
         self.value = value;
@@ -82,7 +82,7 @@ impl BlockIterator {
         }
 
         let (key, value) =
-            BlockIterator::seek_key_within_within_index(self.block.clone(), self.idx + 1);
+            BlockIterator::seek_kv_within_index(self.block.clone(), self.idx + 1);
         self.key = key;
         self.value = value;
         self.idx += 1;
@@ -116,7 +116,7 @@ impl BlockIterator {
                     right = mid;
                 }
                 std::cmp::Ordering::Equal => {
-                    (result_key, value) = BlockIterator::seek_key_within_within_index(block.clone(), mid);
+                    (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), mid);
                     return (result_key, value, mid);
                 }
             }
@@ -126,7 +126,7 @@ impl BlockIterator {
         //     left = block.offsets.len() - 1;
         // }
 
-        (result_key, value) = BlockIterator::seek_key_within_within_index(block.clone(), left);
+        (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), left);
         (result_key, value, left)
     }
 
@@ -138,7 +138,7 @@ impl BlockIterator {
         block.data[offset + 2..offset + key_len + 2].to_vec()
     }
 
-    fn seek_key_within_within_index(block: Arc<Block>, index: usize) -> (Vec<u8>, Vec<u8>) {
+    fn seek_kv_within_index(block: Arc<Block>, index: usize) -> (Vec<u8>, Vec<u8>) {
         let offset = block.offsets[index] as usize;
         let key_len = u16::from_be_bytes([block.data[offset], block.data[offset + 1]]) as usize;
 
@@ -188,7 +188,7 @@ mod test {
 
     #[test]
     fn iterator_test() {
-        let mut builder = BlockBuilder::new(4096);
+        let mut builder = BlockBuilder::new(1024);
         builder.add(b"233", b"233333");
         builder.add(b"122", b"122222");
         

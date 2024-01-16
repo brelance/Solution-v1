@@ -96,6 +96,8 @@ impl SsTableBuilder {
         BlockMeta::encode_block_meta(&self.meta, &mut buf);
 
         file.extend_from_slice(&buf);
+
+        //put block_meta_offset
         file.put_u32(block_meta_offset as u32);
         
         Ok(SsTable {
@@ -118,4 +120,33 @@ impl SsTableBuilder {
         self.build(0, None, path)
     }
 }
- 
+
+
+#[cfg(test)]
+mod test {
+    use std::path::PathBuf;
+
+    use super::SsTableBuilder;
+    use super::SsTable;
+
+  #[test]
+  fn builder_test() {
+    let mut builder: SsTableBuilder = SsTableBuilder::new(16);
+    builder.add(b"1", b"1111");
+    builder.add(b"3", b"3333");
+    builder.add(b"2", b"2222");
+
+    // builder.add(b"4", b"4444");
+    // builder.add(b"5", b"5555");
+
+    // builder.add(b"6", b"6666");
+
+    let path = PathBuf::from(".\test").join("my_test");
+    let mut table = builder.build(1, None, path).unwrap();
+
+    
+
+    
+  }  
+
+} 

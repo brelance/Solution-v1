@@ -1,7 +1,7 @@
 use bytes::BufMut;
 
 use super::Block;
-use std::{collections::{BTreeMap}, io::Read, intrinsics::drop_in_place};
+use std::{collections::{BTreeMap}, io::Read, intrinsics::drop_in_place, vec};
 
 /// Builds a block.
 pub struct BlockBuilder {
@@ -44,7 +44,9 @@ impl BlockBuilder {
 
     /// Finalize the block.
     pub fn build(self) -> Block {
-        let mut data: Vec<u8> = Vec::new();
+        let data_vec_size = self.block_size - self.num_of_elements * 2 - 2;
+        let mut data: Vec<u8> = Vec::with_capacity(data_vec_size);
+
         let mut offsets: Vec<u16> = Vec::new();
         let mut offset: u16 = 0;
 
@@ -61,12 +63,18 @@ impl BlockBuilder {
 
                 offset = offset + 2 + key_len + 2 + value_len;
         }
-            
+
+        while data.len() < data.capacity() {
+            data.push(0);
+        }
+
         Block {data, offsets}    
     }
 
     pub fn build_mut(&mut self) -> Block {
-        let mut data: Vec<u8> = Vec::new();
+        let data_vec_size = self.block_size - self.num_of_elements * 2 + 2;
+        let mut data: Vec<u8> = vec![0u8; data_vec_size];
+
         let mut offsets: Vec<u16> = Vec::new();
         let mut offset: u16 = 0;
 
