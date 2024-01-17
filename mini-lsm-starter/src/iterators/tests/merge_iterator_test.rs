@@ -1,5 +1,6 @@
 use super::*;
 use crate::iterators::merge_iterator::MergeIterator;
+use self::{StorageIterator, Bytes};
 
 fn as_bytes(x: &[u8]) -> Bytes {
     Bytes::copy_from_slice(x)

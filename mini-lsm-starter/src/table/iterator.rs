@@ -71,7 +71,7 @@ impl SsTableIterator {
         let mut left = 0;
         let mut right = table.block_metas.len();
         let target_block;
-        let mut mid = 0;
+        let mut mid;
 
         while left < right {
             mid = left + (right - left) / 2;

@@ -1,5 +1,9 @@
+use std::borrow::BorrowMut;
 use std::cmp::{self};
+use std::collections::binary_heap::PeekMut;
 use std::collections::BinaryHeap;
+use std::ops::Deref;
+use std::{iter, clone};
 
 use anyhow::Result;
 
@@ -42,24 +46,139 @@ pub struct MergeIterator<I: StorageIterator> {
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
-        unimplemented!()
+        let mut heap: BinaryHeap<HeapWrapper<I>> = BinaryHeap::new();
+
+        for (index, iter) in iters.into_iter().enumerate() {
+            if iter.is_valid() {
+                let heapwrapper = HeapWrapper(index, iter);
+                heap.push(heapwrapper);
+            }
+        }
+
+        let current = heap.pop().unwrap();
+        Self {
+            iters: heap,
+            current,
+        }
     }
 }
 
 impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     fn key(&self) -> &[u8] {
-        unimplemented!()
+        self.current.1.key()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.current.1.value()
     }
 
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        self.current.1.is_valid()
     }
 
+    
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+
+        let current = self.current.borrow_mut();
+
+        while let Some(mut next_iter) = self.iters.peek_mut() {
+            if current.1.key() == next_iter.1.key() {
+                if let error @ Err(_) = next_iter.1.next() {
+                    PeekMut::pop(next_iter);
+                    return error;
+                }
+
+                if !next_iter.1.is_valid() {
+                    PeekMut::pop(next_iter);
+                }
+            } else {
+                break;
+            }
+
+        }   
+
+        self.current.1.next()?;
+        
+        if !self.is_valid() {
+            if let Some(iter) = self.iters.pop() {
+                self.current = iter;
+            }
+        }
+
+        let mut next_iter = self.iters.peek_mut().unwrap();
+        if self.current < *next_iter {
+            std::mem::swap(&mut self.current, &mut *next_iter);
+        }
+
+        Ok(())
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BinaryHeap;
+
+    use std::cmp;
+
+    #[derive(Debug)]
+    struct ReverseOrder (pub usize);
+    impl PartialEq for ReverseOrder {
+        fn eq(&self, other: &Self) -> bool {
+            self.0 == self.0
+        }
+    }
+
+    impl Eq for ReverseOrder {}
+
+    impl PartialOrd for ReverseOrder {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            match self.0.cmp(&other.0) {
+                cmp::Ordering::Greater => Some(cmp::Ordering::Greater),
+                cmp::Ordering::Less => Some(cmp::Ordering::Less),
+                cmp::Ordering::Equal => self.0.partial_cmp(&other.0),
+            }
+            .map(|x| x.reverse())
+        }
+    }
+    
+
+    impl Ord for ReverseOrder {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            self.partial_cmp(other).unwrap()
+        }
+    }
+
+    #[test]
+    fn test_heap() {
+        let test = ReverseOrder(64);
+        let test1 = ReverseOrder(32);
+        let test2 = ReverseOrder(16);
+        let test3 = ReverseOrder(8);
+        let mut heap = BinaryHeap::new();
+        
+        heap.push(test3);
+        heap.push(test2);
+        heap.push(test);
+        heap.push(test1);
+
+        assert_eq!(heap.peek().unwrap().0, 8);
+
+    }
+
+    #[test]
+    fn test_heap2() {
+        let test = 64;
+        let test1 = 32;
+        let test2 = 16;
+        let test3 = 8;
+        let mut heap = BinaryHeap::new();
+        
+        heap.push(test3);
+        heap.push(test2);
+        heap.push(test);
+        heap.push(test1);
+
+        assert_eq!(*heap.peek().unwrap(), 64);
     }
 }
