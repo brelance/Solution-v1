@@ -307,4 +307,40 @@ mod test {
 
         assert_eq!(v1.cmp(&v2), std::cmp::Ordering::Less);
     }
+
+    #[test]
+    fn iterator_seek_key_test4() {
+        let block = generate_block();
+        let mut iter = BlockIterator::new(Arc::new(block));
+        for idx in 0..num_of_keys() {
+            let key = key_of(idx);
+            let value = value_of(idx);
+            iter.seek_to_key(&key);
+            assert_eq!(&key, iter.key());
+            assert_eq!(&value, iter.value());
+        }
+    }
+
+    fn key_of(idx: usize) -> Vec<u8> {
+        format!("key_{:03}", idx * 5).into_bytes()
+    }
+    
+    fn value_of(idx: usize) -> Vec<u8> {
+        format!("value_{:010}", idx).into_bytes()
+    }
+    
+    fn num_of_keys() -> usize {
+        100
+    }
+    
+    fn generate_block() -> Block {
+        let mut builder = BlockBuilder::new(10000);
+        for idx in 0..num_of_keys() {
+            let key = key_of(idx);
+            let value = value_of(idx);
+            assert!(builder.add(&key[..], &value[..]));
+        }
+        builder.build()
+    }
+
 }

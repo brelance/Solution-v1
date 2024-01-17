@@ -124,3 +124,12 @@ impl StorageIterator for SsTableIterator {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    
+    #[test]
+    fn test1() {
+        
+    }
+}
