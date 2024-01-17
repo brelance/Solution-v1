@@ -168,14 +168,12 @@ impl BlockIterator {
         let value = block.data[value_pos..(value_pos + value_len)].to_vec();
         (key, value)
     }
-
-
 }
 
 #[cfg(test)]
 mod test {
     use crate::{block::{BlockIterator, Block, BlockBuilder, builder}, iterators};
-    use std::sync::Arc;
+    use std::{sync::Arc, vec};
     fn binary_search(nums: &[i32], target: i32) -> usize {
         let mut left = 0;
         let mut right = nums.len();
@@ -251,7 +249,62 @@ mod test {
         let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
         
         iterator.seek_to_key(b"key_3");
-        assert_eq!(b"key_4", iterator.key())
-        
+        assert_eq!(b"key_4", iterator.key());
+
+        iterator.seek_to_key(b"key_2");
+        assert_eq!(b"key_2", iterator.key());
+
+        iterator.seek_to_key(b"key_1");
+        assert_eq!(b"key_1", iterator.key());
+
+        iterator.seek_to_key(b"key_8");
+        assert_eq!(b"key_8", iterator.key());
+
+
+        iterator.seek_to_key(b"key_4");
+        assert_eq!(b"key_4", iterator.key());
+
+
+        iterator.seek_to_key(b"key_5");
+        assert_eq!(b"key_5", iterator.key());
+    }
+
+    #[test]
+    fn iterator_seek_key_test3() {
+        let mut builder = BlockBuilder::new(1024);
+
+        builder.add(b"key_2", b"1");
+        builder.add(b"key_1", b"1");
+        builder.add(b"key_3", b"Hello");
+        builder.add(b"key_8", b"World");
+        builder.add(b"key_4", b"42");
+    
+        let block = builder.build();
+        let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
+
+    
+        iterator.seek_to_key(b"key_3");
+        assert_eq!(b"Hello", iterator.value());
+
+        iterator.seek_to_key(b"key_2");
+        assert_eq!(b"1", iterator.value());
+
+        iterator.seek_to_key(b"key_4");
+        assert_eq!(b"42", iterator.value());
+
+        iterator.seek_to_key(b"key_5");
+        assert_eq!(b"World", iterator.value());
+    }
+
+    #[test]
+    fn sorting_test() {
+        use std::string::String;
+        let s1 = "key_12342".to_string();
+        let s2 = "key_1".to_string();
+
+        let v1 = b"key_12342".to_vec();
+        let v2 = b"key_14".to_vec();
+
+        assert_eq!(v1.cmp(&v2), std::cmp::Ordering::Less);
     }
 }
