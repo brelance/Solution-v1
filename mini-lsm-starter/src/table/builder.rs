@@ -82,7 +82,6 @@ impl SsTableBuilder {
             self.blocks.insert(last_block);
         }
 
-
         let block_meta_offset = self.total_block_size();
         let mut offset: u32 = 0;
 

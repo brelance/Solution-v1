@@ -124,7 +124,7 @@ impl BlockIterator {
     fn seek_key(block: Arc<Block>, key: &[u8]) -> (Vec<u8>, Vec<u8>, usize, bool) {
         let mut left = 0;
         let mut right = block.offsets.len();
-        let (mut result_key, mut value) :(Vec<u8>, Vec<u8>);
+        let (result_key, value) :(Vec<u8>, Vec<u8>);
 
         while left < right {
             let mid = left + (right - left) / 2;
@@ -172,6 +172,8 @@ impl BlockIterator {
 
 #[cfg(test)]
 mod test {
+    use bytes::Bytes;
+
     use crate::{block::{BlockIterator, Block, BlockBuilder, builder}, iterators};
     use std::{sync::Arc, vec};
     fn binary_search(nums: &[i32], target: i32) -> usize {
@@ -319,7 +321,22 @@ mod test {
             assert_eq!(&key, iter.key());
             assert_eq!(&value, iter.value());
         }
+
+        iter.seek_to_key(&format!("key_{:03}", 4).into_bytes());
+        let key_m = b"key_005";
+        assert_eq!(
+            iter.key(),
+            key_m,
+            "expected key: {:?}, actual key: {:?}",
+            as_bytes(key_m),
+            as_bytes(iter.key())
+        );
     }
+
+    fn as_bytes(x: &[u8]) -> Bytes {
+        Bytes::copy_from_slice(x)
+    }
+
 
     fn key_of(idx: usize) -> Vec<u8> {
         format!("key_{:03}", idx * 5).into_bytes()
@@ -341,6 +358,15 @@ mod test {
             assert!(builder.add(&key[..], &value[..]));
         }
         builder.build()
+    }
+
+    #[test]
+    fn debug_test() {
+        let s1 = b"Key_000";
+        let s2 = b"Key_004";
+        assert_eq!(s1.cmp(&s2), std::cmp::Ordering::Less);
+
+
     }
 
 }

@@ -123,3 +123,30 @@ fn test_block_seek_key() {
         iter.seek_to_key(b"k");
     }
 }
+
+
+#[test]
+fn test_block_seek_key1() {
+    let block = Arc::new(generate_block());
+    let mut iter = BlockIterator::create_and_seek_to_key(block, &key_of(0));
+    for i in 0..num_of_keys() {
+        iter.seek_to_key(&format!("key_{:03}", i * 5).into_bytes());
+        let key = iter.key();
+        let value: &[u8] = iter.value();
+        assert_eq!(
+            key,
+            key_of(i),
+            "expected key: {:?}, actual key: {:?}",
+            as_bytes(&key_of(i)),
+            as_bytes(key)
+        );
+        
+        assert_eq!(
+            value,
+            value_of(i),
+            "expected value: {:?}, actual value: {:?}",
+            as_bytes(&value_of(i)),
+            as_bytes(value)
+        );
+    }
+}
