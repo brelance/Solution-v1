@@ -2,6 +2,67 @@ use super::*;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use self::{StorageIterator, Bytes};
 
+
+
+#[test]
+fn test1() {
+    let i1 = MockIterator::new(vec![
+        (Bytes::from("a"), Bytes::from("1.1")),
+        (Bytes::from("b"), Bytes::from("2.1")),
+        (Bytes::from("c"), Bytes::from("3.1")),
+    ]);
+    let i2 = MockIterator::new(vec![
+        (Bytes::from("a"), Bytes::from("1.2")),
+        (Bytes::from("b"), Bytes::from("2.2")),
+        (Bytes::from("c"), Bytes::from("3.2")),
+        (Bytes::from("d"), Bytes::from("4.2")),
+    ]);
+    let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
+    assert_eq!(iter.key(), Bytes::from("a"));
+    assert_eq!(iter.value(), Bytes::from("1.1"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("b"));
+    assert_eq!(iter.value(), Bytes::from("2.1"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("c"));
+    assert_eq!(iter.value(), Bytes::from("3.1"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("d"));
+    assert_eq!(iter.value(), Bytes::from("4.2"));
+
+}
+
+#[test]
+fn test2() {
+    let i2 = MockIterator::new(vec![
+        (Bytes::from("a"), Bytes::from("1.1")),
+        (Bytes::from("b"), Bytes::from("2.1")),
+        (Bytes::from("c"), Bytes::from("3.1")),
+    ]);
+    let i1 = MockIterator::new(vec![
+        (Bytes::from("a"), Bytes::from("1.2")),
+        (Bytes::from("b"), Bytes::from("2.2")),
+        (Bytes::from("c"), Bytes::from("3.2")),
+        (Bytes::from("d"), Bytes::from("4.2")),
+    ]);
+    let mut iter = TwoMergeIterator::create(i1, i2).unwrap();
+    assert_eq!(iter.key(), Bytes::from("a"));
+    assert_eq!(iter.value(), Bytes::from("1.2"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("b"));
+    assert_eq!(iter.value(), Bytes::from("2.2"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("c"));
+    assert_eq!(iter.value(), Bytes::from("3.2"));
+    iter.next();
+    assert_eq!(iter.key(), Bytes::from("d"));
+    assert_eq!(iter.value(), Bytes::from("4.2"));
+
+}
+
+
+
+
 fn check_iter_result(iter: impl StorageIterator, expected: Vec<(Bytes, Bytes)>) {
     let mut iter = iter;
     for (k, v) in expected {
@@ -13,9 +74,11 @@ fn check_iter_result(iter: impl StorageIterator, expected: Vec<(Bytes, Bytes)>) 
     assert!(!iter.is_valid());
 }
 
+
+
 #[test]
 fn test_merge_1() {
-    let i1 = MockIterator::new(vec![
+    let i1: MockIterator = MockIterator::new(vec![
         (Bytes::from("a"), Bytes::from("1.1")),
         (Bytes::from("b"), Bytes::from("2.1")),
         (Bytes::from("c"), Bytes::from("3.1")),
