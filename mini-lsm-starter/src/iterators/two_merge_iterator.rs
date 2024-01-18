@@ -60,7 +60,9 @@ impl<A: StorageIterator, B: StorageIterator> StorageIterator for TwoMergeIterato
 
         if self.iter_a.key() < self.iter_b.key() { 
             self.iter_a.next()?;
+            self.current = true;
         } else {
+            self.current = false;
             self.iter_b.next()?;
         }
 

@@ -5,7 +5,7 @@ use std::collections::BinaryHeap;
 use std::ops::Deref;
 use std::{iter, clone};
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 
 use super::StorageIterator;
 
@@ -41,12 +41,21 @@ impl<I: StorageIterator> Ord for HeapWrapper<I> {
 /// iterators, perfer the one with smaller index.
 pub struct MergeIterator<I: StorageIterator> {
     iters: BinaryHeap<HeapWrapper<I>>,
-    current: HeapWrapper<I>,
+    // current: HeapWrapper<I>,
+    current: Option<HeapWrapper<I>>
 }
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
         let mut heap: BinaryHeap<HeapWrapper<I>> = BinaryHeap::new();
+
+        if iters.is_empty() {
+            return Self {
+                iters: heap,
+                current: None,
+            }
+        }
+
 
         for (index, iter) in iters.into_iter().enumerate() {
             if iter.is_valid() {
@@ -58,29 +67,39 @@ impl<I: StorageIterator> MergeIterator<I> {
         let current = heap.pop().unwrap();
         Self {
             iters: heap,
-            current,
+            current: Some(current)
         }
     }
 }
 
 impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
     fn key(&self) -> &[u8] {
-        self.current.1.key()
+        self.current
+            .as_ref()
+            .map_or(&[], |iter| iter.1.key())
     }
 
     fn value(&self) -> &[u8] {
-        self.current.1.value()
+        self.current
+            .as_ref()
+            .map_or(&[], |iter| iter.1.value())
     }
 
     fn is_valid(&self) -> bool {
-        self.current.1.is_valid()
+        self.current
+            .as_ref()
+            .map_or(false, |iter| iter.1.is_valid())
     }
 
     
     fn next(&mut self) -> Result<()> {
+        if !self.is_valid() {
+            return Ok(());
+        }
 
-        let current = self.current.borrow_mut();
-
+        let current = self.current.as_mut().unwrap();
+        // let mut current = unsafe {self.current.as_mut().unwrap_unchecked() };
+        
         while let Some(mut next_iter) = self.iters.peek_mut() {
             if current.1.key() == next_iter.1.key() {
                 if let error @ Err(_) = next_iter.1.next() {
@@ -97,17 +116,19 @@ impl<I: StorageIterator> StorageIterator for MergeIterator<I> {
 
         }   
 
-        self.current.1.next()?;
+        current.1.next()?;
         
-        if !self.is_valid() {
+        if !current.1.is_valid() {
             if let Some(iter) = self.iters.pop() {
-                self.current = iter;
+                *current = iter;
             }
+            return Ok(());
         }
 
-        let mut next_iter = self.iters.peek_mut().unwrap();
-        if self.current < *next_iter {
-            std::mem::swap(&mut self.current, &mut *next_iter);
+        if let Some(mut next_iter) = self.iters.peek_mut() {
+            if current < &mut *next_iter {
+                std::mem::swap(current, &mut *next_iter);
+            }
         }
 
         Ok(())
