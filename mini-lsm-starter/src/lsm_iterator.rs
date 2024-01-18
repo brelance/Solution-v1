@@ -3,25 +3,42 @@
 
 use anyhow::Result;
 
-use crate::iterators::StorageIterator;
+use crate::iterators::{self, StorageIterator};
+use crate::iterators::two_merge_iterator::TwoMergeIterator;
+use crate::mem_table::MemTableIterator;
+use crate::table::SsTableIterator;
+pub struct LsmIterator {
+    iterator: TwoMergeIterator<MemTableIterator, SsTableIterator>,
+}
 
-pub struct LsmIterator {}
+impl LsmIterator {
+    pub fn new(mem_iter: MemTableIterator, sst_iter: SsTableIterator) -> Self {
+        let iterator= TwoMergeIterator::create(mem_iter, sst_iter).expect("Error: from ism_iterator");
+        Self { iterator }
+    }
+}
 
 impl StorageIterator for LsmIterator {
     fn is_valid(&self) -> bool {
-        unimplemented!()
+        self.iterator.is_valid()
     }
 
     fn key(&self) -> &[u8] {
-        unimplemented!()
+        self.iterator.key()
     }
 
     fn value(&self) -> &[u8] {
-        unimplemented!()
+        self.iterator.value()
     }
 
     fn next(&mut self) -> Result<()> {
-        unimplemented!()
+        self.iterator.next();
+
+        while self.is_valid() && self.value().is_empty() {
+            self.iterator.next();
+        }
+        
+        Ok(())
     }
 }
 

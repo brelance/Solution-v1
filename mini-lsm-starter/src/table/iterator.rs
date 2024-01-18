@@ -63,36 +63,16 @@ impl SsTableIterator {
     }
 
     fn create_block_iterator(table: Arc<SsTable>, index: usize) -> Result<BlockIterator> {
-        let block = table.read_block(0)?;
+        let block: Arc<crate::block::Block> = table.read_block(0)?;
         Ok(BlockIterator::new(block))
     }
 
     fn create_block_iterator_with_key(table: Arc<SsTable>, key: &[u8]) -> Result<(BlockIterator, usize)> {
-        let mut left = 0;
-        let mut right = table.block_metas.len();
-        let target_block;
-        let mut mid;
+        let block_index = table.find_block_idx(key);
+        let target_block = table.read_block(block_index)?;
 
-        while left < right {
-            mid = left + (right - left) / 2;
-            let cur_key: Vec<u8> = table.block_metas[mid].first_key.to_vec();
-
-            match cur_key.as_slice().cmp(key) {
-                std::cmp::Ordering::Less => {
-                    left = mid + 1;
-                }
-                std::cmp::Ordering::Greater => {
-                    right = mid;
-                }
-                std::cmp::Ordering::Equal => {
-                    break;
-                }
-            }
-        }
-
-        target_block = table.read_block(left)?;
         let target_iterator = BlockIterator::new(target_block);
-        Ok((target_iterator, left))
+        Ok((target_iterator, block_index))
     }
 }
 

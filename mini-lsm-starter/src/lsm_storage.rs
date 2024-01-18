@@ -1,18 +1,21 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
+use std::borrow::BorrowMut;
+use std::mem;
 use std::ops::Bound;
 use std::path::Path;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Ok, Result};
 use bytes::Bytes;
 use parking_lot::RwLock;
 
 use crate::block::Block;
+use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
-use crate::mem_table::MemTable;
-use crate::table::SsTable;
+use crate::mem_table::{MemTable, MemTableIterator};
+use crate::table::{SsTable, SsTableIterator};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
@@ -57,19 +60,55 @@ impl LsmStorage {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        unimplemented!()
+        let inner = self.inner.read();
+        let mem_iter  = inner.memtable.scan(Bound::Included(key), Bound::Included(key));
+        let imem_iter = inner.imm_memtables.iter();
+        let l0_iter = inner.l0_sstables.iter();
+        
+        let mut value = None;
+        if mem_iter.key() == key {
+            value = Some(Bytes::copy_from_slice(mem_iter.value()));
+            return Ok(value);
+        }
+        // imem_iter.map(|memtable| {
+        //     if let Some(v) = memtable.get(key) { value = Some(v) }
+        // });
+        for imem in imem_iter {
+            if let Some(v) = imem.get(key) { value = Some(v) }
+        }
+        if value.is_some() { return Ok(value); }
+
+
+        for sst in l0_iter {
+            let sst_iter = SsTableIterator::create_and_seek_to_key(sst.clone(), key)?;
+            if key == sst_iter.key() {
+                value = Some(Bytes::copy_from_slice(sst_iter.value()));
+            }
+        }
+        // l0_iter.map(|sst| {
+        //     let mut sst_iter = SsTableIterator::create_and_seek_to_key(sst.clone(), key)
+        //         .expect("Error: from Level 0 Sstable");
+        //     if key == sst_iter.key() { value = Some(Bytes::copy_from_slice(sst_iter.value())); }
+        // });
+
+        Ok(value)
     }
 
     /// Put a key-value pair into the storage by writing into the current memtable.
     pub fn put(&self, key: &[u8], value: &[u8]) -> Result<()> {
         assert!(!value.is_empty(), "value cannot be empty");
         assert!(!key.is_empty(), "key cannot be empty");
-        unimplemented!()
+
+        let inner = self.inner.write();
+        inner.memtable.put(key, value);
+        Ok(())
     }
 
     /// Remove a key from the storage by writing an empty value.
     pub fn delete(&self, _key: &[u8]) -> Result<()> {
-        unimplemented!()
+        let inner = self.inner.write();
+        inner.memtable.put(_key, &[]);
+        Ok(())
     }
 
     /// Persist data to disk.
