@@ -1,17 +1,15 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
-use std::borrow::BorrowMut;
 use std::path::Path;
-use std::ptr;
 use std::sync::Arc;
 
 use anyhow::Result;
 
 use super::{BlockMeta, SsTable};
 use crate::lsm_storage::BlockCache;
-use crate::block::{BlockBuilder, Block, self};
-use bytes::{Bytes, BytesMut, BufMut};
+use crate::block::{BlockBuilder, Block};
+use bytes::{Bytes, BufMut};
 use std::collections::BTreeSet;
 
 /// Builds an SSTable from key-value pairs.
@@ -20,7 +18,6 @@ pub struct SsTableBuilder {
     blockbuilder: BlockBuilder,
     blocks: BTreeSet<Block>,
     block_size: usize,
-    // is_first_key: bool,
     offset: u32,
     // Add other fields you need.
 }
@@ -37,7 +34,6 @@ impl SsTableBuilder {
             blockbuilder, 
             blocks,
             block_size, 
-            // is_first_key: true,
             offset: 0,
         }
     }
@@ -131,8 +127,6 @@ impl SsTableBuilder {
 mod test {
     use std::path::PathBuf;
 
-    use bytes::Buf;
-    use bytes::{BufMut, Bytes};
 
     use super::SsTableBuilder;
     use super::SsTable;

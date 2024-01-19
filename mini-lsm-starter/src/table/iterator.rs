@@ -107,9 +107,43 @@ impl StorageIterator for SsTableIterator {
 
 #[cfg(test)]
 mod tests {
+    use super::{SsTableIterator, SsTable};
+    use tempfile::{TempDir, tempdir};
+    use crate::table::SsTableBuilder;
+    use std::sync::Arc;
+    
+    fn key_of(idx: usize) -> Vec<u8> {
+        format!("key_{:03}", idx * 5).into_bytes()
+    }
+
+    fn value_of(idx: usize) -> Vec<u8> {
+        format!("value_{:010}", idx).into_bytes()
+    }
+
+    fn num_of_keys() -> usize {
+        10
+    }
+
+    fn generate_sst() -> (TempDir, SsTable) {
+        let mut builder = SsTableBuilder::new(128);
+        for idx in 0..num_of_keys() {
+            let key = key_of(idx);
+            let value = value_of(idx);
+            builder.add(&key[..], &value[..]);
+        }
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("1.sst");
+        (dir, builder.build_for_test(path).unwrap())
+    }
+
     
     #[test]
-    fn test1() {
-        
+    fn sst_test1() {
+        let (_dir, sst) = generate_sst();
+        let sst = Arc::new(sst);
+
+        let mut iter = SsTableIterator::create_and_seek_to_first(sst);
+
+
     }
 }

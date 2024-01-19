@@ -4,7 +4,6 @@
 mod builder;
 mod iterator;
 
-use std::borrow::BorrowMut;
 use std::path::Path;
 use std::sync::Arc;
 
@@ -13,7 +12,7 @@ pub use builder::SsTableBuilder;
 use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
-use crate::block::{Block, self, BLOCK_SIZE};
+use crate::block::{Block, BLOCK_SIZE};
 use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

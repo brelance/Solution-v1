@@ -7,7 +7,7 @@ mod iterator;
 
 pub use builder::BlockBuilder;
 /// You may want to check `bytes::BufMut` out when manipulating continuous chunks of memory
-use bytes::{Bytes, Buf, BufMut};
+use bytes::{Bytes, BufMut};
 pub use iterator::BlockIterator;
 
 /// A block is the smallest unit of read and caching in LSM tree.
