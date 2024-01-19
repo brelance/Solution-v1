@@ -3,7 +3,7 @@
 
 use std::borrow::BorrowMut;
 use std::mem;
-use std::ops::Bound;
+use std::ops::{Bound, DerefMut};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -117,6 +117,10 @@ impl LsmStorage {
     /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         unimplemented!()
+        // let mut inner = self.inner.write();
+        // let memtable = inner.memtable.clone();
+
+        // Ok(())
     }
 
     /// Create an iterator over a range of keys.

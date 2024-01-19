@@ -123,11 +123,12 @@ impl BlockIterator {
     ///Note: This implement may cause bug. eg: "11".compare("2") == Less
     fn seek_key(block: Arc<Block>, key: &[u8]) -> (Vec<u8>, Vec<u8>, usize, bool) {
         let mut left = 0;
-        let mut right = block.offsets.len();
+        let elem_num: usize = block.offsets.len();
+        let mut right = elem_num;
         let (result_key, value) :(Vec<u8>, Vec<u8>);
 
         while left < right {
-            let mid = left + (right - left) / 2;
+            let mid: usize = left + (right - left) / 2;
             let cur_key: Vec<u8> = BlockIterator::seek_key_within_index(block.clone(), mid);
 
             match cur_key.as_slice().cmp(key) {
@@ -144,6 +145,8 @@ impl BlockIterator {
             }
         }
 
+        // if key greater than max element in the block, we return last(max) elems in the block
+        if left >= elem_num { left = elem_num - 1; }
         (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), left);
         (result_key, value, left, false)
     }
@@ -332,6 +335,30 @@ mod test {
             as_bytes(iter.key())
         );
     }
+
+    #[test]
+    fn iterator_seek_key_test5() {
+        let block = generate_block();
+        let mut iter = BlockIterator::new(Arc::new(block));
+        for idx in 0..10 {
+            let key = key_of(idx);
+            let value = value_of(idx);
+            iter.seek_to_key(&key);
+            assert_eq!(&key, iter.key());
+            assert_eq!(&value, iter.value());
+        }
+
+        iter.seek_to_key(&format!("key_{:03}", 46).into_bytes());
+        // let key_m = b"key_005";
+        // assert_eq!(
+        //     iter.key(),
+        //     key_m,
+        //     "expected key: {:?}, actual key: {:?}",
+        //     as_bytes(key_m),
+        //     as_bytes(iter.key())
+        // );
+    }
+    
 
     fn as_bytes(x: &[u8]) -> Bytes {
         Bytes::copy_from_slice(x)

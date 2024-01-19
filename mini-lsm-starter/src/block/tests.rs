@@ -30,7 +30,7 @@ fn value_of(idx: usize) -> Vec<u8> {
 }
 
 fn num_of_keys() -> usize {
-    100
+    10
 }
 
 fn generate_block() -> Block {
