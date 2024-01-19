@@ -12,7 +12,7 @@ pub use builder::SsTableBuilder;
 use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
-use crate::block::{Block};
+use crate::block::{self, Block};
 use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -174,27 +174,9 @@ impl SsTable {
     /// Note: You may want to make use of the `first_key` stored in `BlockMeta`.
     /// You may also assume the key-value pairs stored in each consecutive block are sorted.
     pub fn find_block_idx(&self, key: &[u8]) -> usize {
-        let mut left = 0;
-        let mut right = self.block_metas.len();
-
-        while left < right {
-            let mid = left + (right - left) / 2;
-            let cur_key: Vec<u8> = self.block_metas[mid].first_key.to_vec();
-
-            match cur_key.as_slice().cmp(key) {
-                std::cmp::Ordering::Less => {
-                    left = mid + 1;
-                }
-                std::cmp::Ordering::Greater => {
-                    right = mid;
-                }
-                std::cmp::Ordering::Equal => {
-                    break;
-                }
-            }
-        }
-
-        left
+        self.block_metas
+            .partition_point(|meta| meta.first_key <= key)
+            .saturating_sub(1)
     }
 
     /// Get number of data blocks.

@@ -1,6 +1,4 @@
-use std::{sync::Arc, borrow::Borrow, ops::Index, default};
-
-use crate::iterators::StorageIterator;
+use std::sync::Arc;
 
 use super::Block;
 
@@ -17,7 +15,6 @@ pub struct BlockIterator {
 
     nums_of_elements: usize,
 
-    is_valid: bool,
 }
 
 impl BlockIterator {
@@ -28,7 +25,6 @@ impl BlockIterator {
             value: Vec::new(),
             idx: 0,
             nums_of_elements: 0,
-            is_valid: true,
         }
     }
 
@@ -42,13 +38,12 @@ impl BlockIterator {
             value,
             idx: 0,
             nums_of_elements,
-            is_valid: true,
         }
     }
 
     /// Creates a block iterator and seek to the first key that >= `key`.
     pub fn create_and_seek_to_key(block: Arc<Block>, key: &[u8]) -> Self {
-        let (key, value, idx, _) = BlockIterator::seek_key(block.clone(), key);
+        let (key, value, idx) = BlockIterator::seek_key(block.clone(), key);
         let nums_of_elements = block.offsets.len();
 
         BlockIterator { 
@@ -57,7 +52,6 @@ impl BlockIterator {
             value,
             idx, 
             nums_of_elements,
-            is_valid: true,
         }
     }
 
@@ -74,7 +68,7 @@ impl BlockIterator {
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
-        self.is_valid
+        self.idx + 1 < self.nums_of_elements
     }
 
     /// Seeks to the first key in the block.
@@ -89,10 +83,7 @@ impl BlockIterator {
 
     /// Move to the next key in the block.
     pub fn next(&mut self) {
-        if self.idx + 1 >= self.nums_of_elements {
-            self.is_valid = false;
-            return;
-        }
+        if !self.is_valid() { return; }
 
         let (key, value) =
             BlockIterator::seek_kv_within_index(self.block.clone(), self.idx + 1);
@@ -112,16 +103,15 @@ impl BlockIterator {
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by callers.
     pub fn seek_to_key(&mut self, key: &[u8]) {
-        let (key, value, idx, is_valid) = BlockIterator::seek_key(self.block.clone(), key);
+        let (key, value, idx) = BlockIterator::seek_key(self.block.clone(), key);
         self.key = key;
         self.value = value;
         self.idx = idx;
-        self.is_valid = is_valid;
     }
 
 
     ///Note: This implement may cause bug. eg: "11".compare("2") == Less
-    fn seek_key(block: Arc<Block>, key: &[u8]) -> (Vec<u8>, Vec<u8>, usize, bool) {
+    fn seek_key(block: Arc<Block>, key: &[u8]) -> (Vec<u8>, Vec<u8>, usize) {
         let mut left = 0;
         let elem_num: usize = block.offsets.len();
         let mut right = elem_num;
@@ -140,7 +130,7 @@ impl BlockIterator {
                 }
                 std::cmp::Ordering::Equal => {
                     (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), mid);
-                    return (result_key, value, mid, true);
+                    return (result_key, value, mid);
                 }
             }
         }
@@ -148,7 +138,7 @@ impl BlockIterator {
         // if key greater than max element in the block, we return last(max) elems in the block
         if left >= elem_num { left = elem_num - 1; }
         (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), left);
-        (result_key, value, left, false)
+        (result_key, value, left)
     }
 
     fn seek_key_within_index(block: Arc<Block>, index: usize) -> Vec<u8> {
