@@ -30,6 +30,8 @@ fn test_memtable_overwrite() {
     assert_eq!(&memtable.get(b"key3").unwrap()[..], b"value33");
 }
 
+
+// Not passed
 #[test]
 fn test_memtable_flush() {
     let memtable = MemTable::create();

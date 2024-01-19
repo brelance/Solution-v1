@@ -12,7 +12,7 @@ pub use builder::SsTableBuilder;
 use bytes::{Buf, Bytes, BufMut};
 pub use iterator::SsTableIterator;
 
-use crate::block::{Block, BLOCK_SIZE};
+use crate::block::{Block};
 use crate::lsm_storage::BlockCache;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -106,6 +106,8 @@ pub struct SsTable {
     block_metas: Vec<BlockMeta>,
     /// The offset that indicates the start point of meta blocks in `file`.
     block_meta_offset: usize,
+    
+    block_size: usize,
 }
 
 impl SsTable {
@@ -144,11 +146,12 @@ impl SsTable {
                     first_key: first_key.into()
                 }
             );
-            
+
             meta_offset += key_len;
         }
 
-        Ok(SsTable { file, block_metas, block_meta_offset, })
+        let block_size = (block_metas[1].offset - block_metas[0].offset) as usize;
+        Ok(SsTable { file, block_metas, block_meta_offset, block_size})
         
     }
 
@@ -156,7 +159,7 @@ impl SsTable {
     pub fn read_block(&self, block_idx: usize) -> Result<Arc<Block>> {
         let meta = &self.block_metas[block_idx];
         
-        let block_slice = self.file.read(meta.offset as u64, BLOCK_SIZE as u64)?;
+        let block_slice = self.file.read(meta.offset as u64, self.block_size as u64)?;
         let block = Block::decode(&block_slice);
 
         Ok(Arc::new(block))

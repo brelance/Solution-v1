@@ -20,7 +20,9 @@ pub struct SsTableIterator {
 impl SsTableIterator {
     /// Create a new iterator and seek to the first key-value pair in the first data block.
     pub fn create_and_seek_to_first(table: Arc<SsTable>) -> Result<Self> {
-        let block_iterator = Self::create_block_iterator(table.clone(), 0)?;
+        let mut block_iterator = Self::create_block_iterator(table.clone(), 0)?;
+        block_iterator.seek_to_first();
+
         Ok(Self {
             table,
             block_iterator,
@@ -84,7 +86,7 @@ impl StorageIterator for SsTableIterator {
 
     /// Return the `value` that's held by the underlying block iterator.
     fn value(&self) -> &[u8] {
-        self.block_iterator.key()
+        self.block_iterator.value()
     }
 
     /// Return whether the current block iterator is valid or not.
@@ -109,7 +111,7 @@ impl StorageIterator for SsTableIterator {
 mod tests {
     use super::{SsTableIterator, SsTable};
     use tempfile::{TempDir, tempdir};
-    use crate::table::SsTableBuilder;
+    use crate::{iterators::StorageIterator, table::SsTableBuilder};
     use std::sync::Arc;
     
     fn key_of(idx: usize) -> Vec<u8> {
@@ -142,7 +144,9 @@ mod tests {
         let (_dir, sst) = generate_sst();
         let sst = Arc::new(sst);
 
-        let mut iter = SsTableIterator::create_and_seek_to_first(sst);
+        let mut iter = SsTableIterator::create_and_seek_to_first(sst).expect("error");
+        assert_eq!(iter.key(), key_of(0));
+        assert_eq!(iter.value(), value_of(0))
 
 
     }

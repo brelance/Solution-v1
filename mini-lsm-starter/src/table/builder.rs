@@ -105,6 +105,7 @@ impl SsTableBuilder {
             file: super::FileObject(Bytes::from(file)),
             block_metas: self.meta,
             block_meta_offset,
+            block_size: self.block_size,
         })
     }
 

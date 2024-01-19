@@ -34,6 +34,7 @@ impl Block {
     pub fn encode(&self) -> Bytes {
         let mut encoded: Vec<u8> = self.data.clone();
         for &offset in self.offsets.iter() {
+            // println!("offset is {}", offset);
             encoded.put_u16(offset);
         }
 
