@@ -1,9 +1,7 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
-use std::borrow::BorrowMut;
-use std::mem;
-use std::ops::{Bound, DerefMut};
+use std::ops::{Bound};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -60,36 +58,37 @@ impl LsmStorage {
 
     /// Get a key from the storage. In day 7, this can be further optimized by using a bloom filter.
     pub fn get(&self, key: &[u8]) -> Result<Option<Bytes>> {
-        let inner = self.inner.read();
-        let mem_iter  = inner.memtable.scan(Bound::Included(key), Bound::Included(key));
-        let imem_iter = inner.imm_memtables.iter();
-        let l0_iter = inner.l0_sstables.iter();
-        
         let mut value = None;
-        if mem_iter.key() == key {
-            value = Some(Bytes::copy_from_slice(mem_iter.value()));
-            return Ok(value);
-        }
-        // imem_iter.map(|memtable| {
-        //     if let Some(v) = memtable.get(key) { value = Some(v) }
-        // });
-        for imem in imem_iter {
-            if let Some(v) = imem.get(key) { value = Some(v) }
-        }
-        if value.is_some() { return Ok(value); }
 
+        let inner = self.inner.read();
+        value = inner.memtable.get(key);
 
-        for sst in l0_iter {
-            let sst_iter = SsTableIterator::create_and_seek_to_key(sst.clone(), key)?;
-            if key == sst_iter.key() {
-                value = Some(Bytes::copy_from_slice(sst_iter.value()));
+        if value.as_ref().is_some_and(|v| v.is_empty()) { return Ok(None); }
+
+        if value.is_none() {
+            let imem_iter = inner.imm_memtables.iter();
+            let l0_iter = inner.l0_sstables.iter();
+
+            for imem in imem_iter {
+                if let Some(v) = imem.get(key) {
+                    if !v.is_empty() { value = Some(v); }
+                }
+                break;
             }
+
+            if value.is_none() {
+                for sst in l0_iter {
+                    let sst_iter = SsTableIterator::create_and_seek_to_key(sst.clone(), key)?;
+                    if key == sst_iter.key() {
+                        if !sst_iter.value().is_empty() {
+                            value = Some(Bytes::copy_from_slice(sst_iter.value()));
+                        }
+                        break;
+                    }
+                }
+            }
+            
         }
-        // l0_iter.map(|sst| {
-        //     let mut sst_iter = SsTableIterator::create_and_seek_to_key(sst.clone(), key)
-        //         .expect("Error: from Level 0 Sstable");
-        //     if key == sst_iter.key() { value = Some(Bytes::copy_from_slice(sst_iter.value())); }
-        // });
 
         Ok(value)
     }
@@ -117,10 +116,6 @@ impl LsmStorage {
     /// In day 6: call `fsync` on WAL.
     pub fn sync(&self) -> Result<()> {
         unimplemented!()
-        // let mut inner = self.inner.write();
-        // let memtable = inner.memtable.clone();
-
-        // Ok(())
     }
 
     /// Create an iterator over a range of keys.
