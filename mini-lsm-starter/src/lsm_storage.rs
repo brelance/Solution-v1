@@ -12,9 +12,11 @@ use bytes::Bytes;
 use parking_lot::{RwLock, Mutex};
 
 use crate::block::Block;
+use crate::iterators::merge_iterator::MergeIterator;
+use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
-use crate::mem_table::{MemTable, MemTableIterator};
+use crate::mem_table::{self, map_bound, MemTable, MemTableIterator};
 use crate::table::{SsTable, SsTableIterator, SsTableBuilder};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -162,8 +164,6 @@ impl LsmStorage {
             *guard = Arc::new(snapshot);
         }
 
-
-
         Ok(())
     }
 
@@ -173,7 +173,39 @@ impl LsmStorage {
         _lower: Bound<&[u8]>,
         _upper: Bound<&[u8]>,
     ) -> Result<FusedIterator<LsmIterator>> {
-        unimplemented!()
+        let snapshot = {
+            let guard = self.inner.read();
+            Arc::clone(&guard)
+        };
+
+        let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
+        memtable_iters.push(Box::new(snapshot.memtable.scan(_lower, _upper)));
+        
+        for memtable in snapshot.imm_memtables.iter().rev() {
+            memtable_iters.push(Box::new(memtable.scan(_lower, _upper)));
+        }
+        let memtable_iter = MergeIterator::create(memtable_iters);
+        let mut table_iters = Vec::with_capacity(snapshot.l0_sstables.len());
+
+        for table in snapshot.l0_sstables.iter().rev() {
+            let iter = match _lower  {
+                Bound::Included(key) => SsTableIterator::create_and_seek_to_key(table.clone(), key)?,
+                Bound::Excluded(key) => {
+                    let mut iter = SsTableIterator::create_and_seek_to_key(table.clone(), key)?;
+                    if iter.is_valid() && iter.key() == key { iter.next()?; }
+                    iter
+                },
+                Bound::Unbounded => SsTableIterator::create_and_seek_to_first(table.clone())?,
+            };
+            table_iters.push(Box::new(iter));
+        }
+        
+        let table_iter = MergeIterator::create(table_iters);
+        
+        let lsm_iter = LsmIterator::new(TwoMergeIterator::create(memtable_iter, table_iter)?, map_bound(_upper))?;
+        
+        Ok(FusedIterator::new(lsm_iter))
+
     }
 
     fn next_sst_id(&self) -> usize {

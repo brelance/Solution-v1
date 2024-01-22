@@ -56,7 +56,6 @@ impl<I: StorageIterator> MergeIterator<I> {
             }
         }
 
-
         for (index, iter) in iters.into_iter().enumerate() {
             if iter.is_valid() {
                 let heapwrapper = HeapWrapper(index, iter);
