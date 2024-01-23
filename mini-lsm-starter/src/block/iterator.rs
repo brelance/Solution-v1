@@ -109,7 +109,6 @@ impl BlockIterator {
         self.idx = idx;
     }
 
-
     ///Note: This implement may cause bug. eg: "11".compare("2") == Less
     fn seek_key(block: Arc<Block>, key: &[u8]) -> (Vec<u8>, Vec<u8>, usize) {
         let mut left = 0;
@@ -162,6 +161,7 @@ impl BlockIterator {
         (key, value)
     }
 }
+
 
 #[cfg(test)]
 mod test {

@@ -1,7 +1,7 @@
 use bytes::BufMut;
 
 use super::Block;
-use std::{collections::{BTreeMap}, io::Read, intrinsics::drop_in_place, vec};
+use std::{collections::{BTreeMap}};
 
 /// Builds a block.
 pub struct BlockBuilder {

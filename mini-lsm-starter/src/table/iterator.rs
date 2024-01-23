@@ -14,7 +14,6 @@ pub struct SsTableIterator {
     table: Arc<SsTable>,
     block_iterator: BlockIterator,
     block_idx: usize,
-    // is_valid: bool,
 }
 
 impl SsTableIterator {
@@ -82,6 +81,30 @@ impl SsTableIterator {
 
         Ok((target_iterator, block_index))
     }
+
+
+}
+
+// For debug
+use bytes::Bytes;
+impl SsTableIterator {
+    pub fn debug(&mut self) -> Result<()> {
+        loop {
+            let key = self.key();
+            let value = self.value();
+            println!("[SstableIterator Debug]: key: {:?}, value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
+            if !self.is_valid() { break; };
+            self.next()?;
+        } 
+
+        self.seek_to_first()?;
+        Ok(())
+    }
+
+    fn as_bytes(slice: &[u8]) -> Bytes {
+        Bytes::copy_from_slice(slice)
+    }
+
 }
 
 impl StorageIterator for SsTableIterator {

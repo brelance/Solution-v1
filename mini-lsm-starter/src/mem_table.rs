@@ -50,6 +50,8 @@ impl MemTable {
     /// Flush the mem-table to SSTable.
     pub fn flush(&self, builder: &mut SsTableBuilder) -> Result<()> {
         for entry in self.map.iter() {
+            //Debug
+            println!("[Memtable_flush]: key: {:?} value: {:?}", entry.key(), entry.value());
             builder.add(&entry.key(), &entry.value());
         }
         Ok(())
@@ -84,6 +86,23 @@ impl MemTableIterator {
         entry
             .map(|x| (x.key().clone(), x.value().clone()))
             .unwrap_or_else(|| (Bytes::from_static(&[]), Bytes::from_static(&[])))
+    }
+}
+
+impl MemTableIterator {
+    pub fn debug(&mut self) -> Result<()> {
+        while self.is_valid() {
+            let key = self.key();
+            let value = self.value();
+            println!("[MemIetrator Debug]: key {:?}, value {:?}", Self::as_bytes(key), Self::as_bytes(value));
+            self.next();
+        }
+
+        Ok(())
+    }
+
+    fn as_bytes(slice: &[u8]) -> Bytes {
+        Bytes::copy_from_slice(slice)
     }
 }
 

@@ -63,10 +63,10 @@ impl<I: StorageIterator> MergeIterator<I> {
             }
         }
 
-        let current = heap.pop().unwrap();
+        let current = heap.pop();
         Self {
             iters: heap,
-            current: Some(current)
+            current,
         }
     }
 }
