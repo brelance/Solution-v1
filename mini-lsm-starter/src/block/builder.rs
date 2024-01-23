@@ -30,9 +30,13 @@ impl BlockBuilder {
         if self.rest_size < insert_size {
             return false;
         } else {
+            if !self.buffer.contains_key(key) {
+                self.num_of_elements += 1;
+            }
+            
             self.buffer.insert(key.to_vec(), value.to_vec());
             self.rest_size -= insert_size;
-            self.num_of_elements += 1;
+            
             return true;
         }
     }

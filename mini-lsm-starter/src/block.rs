@@ -49,10 +49,7 @@ impl Block {
 
         let kv_data = data[0..offset_start_pos].to_vec();
         let offset_slice = &data[offset_start_pos..src_len - 2];
-        // let offsets: Vec<u16> = offset_slice
-        //     .chunks(2)
-        //     .into_iter()
-        //     .map(|high, low| (high as u16) << 8 | low as u16)
+        
         let mut offsets = Vec::new();
         for pair in offset_slice.chunks(2) {
             match pair {
