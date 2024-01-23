@@ -11,9 +11,11 @@ fn as_bytes(x: &[u8]) -> Bytes {
 
 fn check_iter_result(iter: impl StorageIterator, expected: Vec<(Bytes, Bytes)>) {
     let mut iter = iter;
+    println!("[fun check_iter_result_Debug]: key: {:?}, value: {:?}",  as_bytes(iter.key()), as_bytes(iter.value()));
+
     for (k, v) in expected {
         assert!(iter.is_valid());
-        println!("[check iter result Debug]: key: {:?}, value: {:?}",  as_bytes(iter.key()), as_bytes(iter.value()));
+        println!("[fun check_iter_result_Debug]: key: {:?}, value: {:?}",  as_bytes(iter.key()), as_bytes(iter.value()));
 
         assert_eq!(
             k,

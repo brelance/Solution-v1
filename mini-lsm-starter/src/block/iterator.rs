@@ -21,11 +21,11 @@ pub struct BlockIterator {
 impl BlockIterator {
     pub fn new(block: Arc<Block>) -> Self {
         Self {
+            nums_of_elements: block.offsets.len(),
             block,
             key: Vec::new(),
             value: Vec::new(),
             idx: 0,
-            nums_of_elements: 0,
             is_valid: true,
         }
     }
@@ -177,7 +177,7 @@ mod test {
     use bytes::Bytes;
 
     use crate::{block::{BlockIterator, Block, BlockBuilder, builder}, iterators};
-    use std::{sync::Arc, vec};
+    use std::{iter, sync::Arc, vec};
     fn binary_search(nums: &[i32], target: i32) -> usize {
         let mut left = 0;
         let mut right = nums.len();
@@ -214,6 +214,7 @@ mod test {
         let mut block =  builder.build();
         let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
         
+        assert_eq!(iterator.nums_of_elements, 2);
         assert_eq!(b"122", iterator.key());
         assert_eq!(b"122222", iterator.value());
    
@@ -234,6 +235,7 @@ mod test {
         let mut block =  builder.build();
         let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
         
+        assert_eq!(iterator.nums_of_elements, 5);
         iterator.seek_to_key(b"3");
         assert_eq!(b"4", iterator.key())
         
@@ -252,6 +254,7 @@ mod test {
         let mut block =  builder.build();
         let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
         
+        assert_eq!(iterator.nums_of_elements, 5);
         iterator.seek_to_key(b"key_3");
         assert_eq!(b"key_4", iterator.key());
 
@@ -282,9 +285,12 @@ mod test {
         builder.add(b"key_3", b"Hello");
         builder.add(b"key_8", b"World");
         builder.add(b"key_4", b"42");
+
     
         let block = builder.build();
         let mut iterator = BlockIterator::create_and_seek_to_first(Arc::new(block));
+
+        assert_eq!(iterator.nums_of_elements, 5);
 
     
         iterator.seek_to_key(b"key_3");

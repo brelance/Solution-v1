@@ -1,7 +1,6 @@
 #![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
 #![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
 
-use std::mem;
 use std::ops::{Bound};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
@@ -10,13 +9,14 @@ use std::sync::Arc;
 use anyhow::{Ok, Result};
 use bytes::Bytes;
 use parking_lot::{RwLock, Mutex};
+use crate::debug::as_bytes;
 
 use crate::block::Block;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
-use crate::mem_table::{self, map_bound, MemTable, MemTableIterator};
+use crate::mem_table::{map_bound, MemTable, MemTableIterator};
 use crate::table::{SsTable, SsTableIterator, SsTableBuilder};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
@@ -180,11 +180,15 @@ impl LsmStorage {
         }; // drop global lock here
 
         let mut memtable_iters = Vec::with_capacity(snapshot.imm_memtables.len() + 1);
+
+        //Debug
+        // let mut active_memiter = Box::new(snapshot.memtable.scan(lower, upper));
+        // active_memiter.debug();
+
         memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)));
+        
         for memtable in snapshot.imm_memtables.iter().rev() {
             let mut iter: MemTableIterator = memtable.scan(lower, upper);
-            iter.debug();
-
             memtable_iters.push(Box::new(memtable.scan(lower, upper)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
@@ -197,6 +201,9 @@ impl LsmStorage {
                 }
                 Bound::Excluded(key) => {
                     let mut iter = SsTableIterator::create_and_seek_to_key(table.clone(), key)?;
+                    println!("[fun scan Debug]: key {:?} : value {:?}", as_bytes(iter.key()), as_bytes(iter.value()));
+                    println!("[fun scan Debug]: is_valid {:?}", iter.is_valid());
+                    
                     if iter.is_valid() && iter.key() == key {
                         iter.next()?;
                     }
@@ -204,8 +211,8 @@ impl LsmStorage {
                 }
                 Bound::Unbounded => SsTableIterator::create_and_seek_to_first(table.clone())?,
             };
-            
-            iter.debug();
+            // Debug
+            // iter.debug();
             
             table_iters.push(Box::new(iter));
         }

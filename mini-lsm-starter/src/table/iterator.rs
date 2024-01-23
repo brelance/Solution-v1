@@ -89,13 +89,12 @@ impl SsTableIterator {
 use bytes::Bytes;
 impl SsTableIterator {
     pub fn debug(&mut self) -> Result<()> {
-        loop {
+        while self.is_valid() {
             let key = self.key();
             let value = self.value();
-            println!("[SstableIterator Debug]: Contain key: {:?}, value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
-            if !self.is_valid() { break; };
-            self.next()?;
-        } 
+            println!("[SstableIterator Debug]: Contain key: {:?} : value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
+            self.next();
+        }
 
         self.seek_to_first()?;
         Ok(())
