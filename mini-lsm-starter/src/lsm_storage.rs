@@ -140,9 +140,6 @@ impl LsmStorage {
             let memtable = std::mem::replace(&mut snapshot.memtable, Arc::new(MemTable::create()));
             flush_table = memtable.clone();
             sst_id = self.next_sst_id();
-            //debug
-            let mut mem_iter = flush_table.scan(Bound::Unbounded, Bound::Unbounded);
-            mem_iter.debug();
 
             snapshot.imm_memtables.push(memtable);
             *guard = Arc::new(snapshot);
@@ -163,12 +160,6 @@ impl LsmStorage {
             let mut snapshot = guard.as_ref().clone();   
             snapshot.imm_memtables.pop();
             snapshot.l0_sstables.push(sst);
-
-            //Debug
-            for table in snapshot.l0_sstables.iter().rev() {
-                let mut iter = SsTableIterator::create_and_seek_to_first(table.clone())?;
-                iter.debug();
-            }
             
             *guard = Arc::new(snapshot);
         }

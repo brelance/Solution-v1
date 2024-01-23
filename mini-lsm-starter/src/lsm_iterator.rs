@@ -12,6 +12,7 @@ use crate::table::SsTableIterator;
 type LsmIteratorInner =
     TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>;
 
+use crate::debug::as_bytes;
 pub struct LsmIterator {
     iter: LsmIteratorInner,
     end_bound: Bound<Bytes>,
@@ -35,10 +36,18 @@ impl LsmIterator {
             self.is_valid = false;
             return Ok(());
         }
+
+        //Debug
         match self.end_bound.as_ref() {
             Bound::Unbounded => {}
-            Bound::Included(key) => self.is_valid = self.iter.key() <= key.as_ref(),
-            Bound::Excluded(key) => self.is_valid = self.iter.key() < key.as_ref(),
+            Bound::Included(key) => {
+                self.is_valid = self.iter.key() <= key.as_ref();
+                println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
+            },
+            Bound::Excluded(key) => {
+                self.is_valid = self.iter.key() < key.as_ref();
+                println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
+            },
         }
         Ok(())
     }

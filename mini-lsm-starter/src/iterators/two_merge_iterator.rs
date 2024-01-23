@@ -1,7 +1,7 @@
 use anyhow::{Ok, Result};
 
 use super::StorageIterator;
-use std::{cmp::Ordering, io::Cursor};
+use std::{cmp::Ordering};
 
 /// Merges two iterators of different types into one. If the two iterators have the same key, only
 /// produce the key once and prefer the entry from A.
@@ -95,6 +95,50 @@ impl<A: StorageIterator, B: StorageIterator> StorageIterator for TwoMergeIterato
 
         Ok(())
     }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use anyhow::Ok;
+
+    use crate::iterators::StorageIterator;
+    use crate::mem_table::*;
+    use crate::table::*;
+    use anyhow::Result;
+    use std::sync::Arc;
+
+
+    use crate::debug::as_bytes;
+    use super::TwoMergeIterator;
+
+    #[test]
+    fn test1() -> Result<()> {
+        let mut memtable = MemTable::create();
+        memtable.put(b"1", b"1111");
+        memtable.put(b"2", b"2222");
+
+        let mut ssbuilder = SsTableBuilder::new(4096);
+        ssbuilder.add(b"3", b"111");
+        ssbuilder.add(b"4", b"3333");
+        let table = ssbuilder.build_for_test("./test")?;
+        let mut mem_iter = memtable.scan(std::ops::Bound::Included(b"1"), std::ops::Bound::Included(b"2"));
+        let mut sst_iter = SsTableIterator::create_and_seek_to_first(Arc::new(table))?;
+        
+        
+        let mut two_merger_iter = TwoMergeIterator::create(mem_iter, sst_iter)?;
+        
+        // while sst_iter.is_valid() {
+        //     println!("key {:?} : value {:?}", as_bytes(sst_iter.key()), as_bytes(sst_iter.value()));
+        //     sst_iter.next();
+        // }
+
+        while two_merger_iter.is_valid() {
+            println!("key {:?} : value {:?}", as_bytes(two_merger_iter.key()), as_bytes(two_merger_iter.value()));
+            two_merger_iter.next();
+        }
+        Ok(())
+    }   
 }
 
 

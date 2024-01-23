@@ -6,7 +6,7 @@ use std::sync::Arc;
 use anyhow::{Result, Ok};
 
 use super::SsTable;
-use crate::iterators::{StorageIterator, self};
+use crate::iterators::{StorageIterator};
 use crate::block::BlockIterator;
 
 /// An iterator over the contents of an SSTable.
@@ -92,7 +92,7 @@ impl SsTableIterator {
         loop {
             let key = self.key();
             let value = self.value();
-            println!("[SstableIterator Debug]: key: {:?}, value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
+            println!("[SstableIterator Debug]: Contain key: {:?}, value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
             if !self.is_valid() { break; };
             self.next()?;
         } 
