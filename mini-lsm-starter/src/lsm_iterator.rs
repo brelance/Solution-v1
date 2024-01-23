@@ -1,33 +1,53 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::ops::Bound;
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use bytes::Bytes;
 
 use crate::iterators::merge_iterator::MergeIterator;
-use crate::iterators::{StorageIterator};
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
+use crate::iterators::StorageIterator;
 use crate::mem_table::MemTableIterator;
 use crate::table::SsTableIterator;
+
+type LsmIteratorInner =
+    TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>;
+
 pub struct LsmIterator {
     iter: LsmIteratorInner,
     end_bound: Bound<Bytes>,
     is_valid: bool,
 }
 
-type LsmIteratorInner = TwoMergeIterator<MergeIterator<MemTableIterator>, MergeIterator<SsTableIterator>>;
-
 impl LsmIterator {
-    pub fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {
+    pub(crate) fn new(iter: LsmIteratorInner, end_bound: Bound<Bytes>) -> Result<Self> {
         let mut iter = Self {
             is_valid: iter.is_valid(),
             iter,
             end_bound,
         };
-        
+        iter.move_to_non_delete()?;
         Ok(iter)
+    }
+
+    fn next_inner(&mut self) -> Result<()> {
+        self.iter.next()?;
+        if !self.iter.is_valid() {
+            self.is_valid = false;
+            return Ok(());
+        }
+        match self.end_bound.as_ref() {
+            Bound::Unbounded => {}
+            Bound::Included(key) => self.is_valid = self.iter.key() <= key.as_ref(),
+            Bound::Excluded(key) => self.is_valid = self.iter.key() < key.as_ref(),
+        }
+        Ok(())
+    }
+
+    fn move_to_non_delete(&mut self) -> Result<()> {
+        while self.is_valid() && self.iter.value().is_empty() {
+            self.next_inner()?;
+        }
+        Ok(())
     }
 }
 
@@ -46,34 +66,7 @@ impl StorageIterator for LsmIterator {
 
     fn next(&mut self) -> Result<()> {
         self.next_inner()?;
-        self.skip_delete()?;
-
-        Ok(())
-    }
-}
-
-impl LsmIterator {
-    fn next_inner(&mut self) -> Result<()> {
-        self.iter.next()?;
-        if !self.iter.is_valid() {
-            self.is_valid = false;
-            return Ok(());
-        }
-
-        match self.end_bound.as_ref() {
-            Bound::Included(key) => self.is_valid = self.iter.key() <= key,
-            Bound::Excluded(key) => self.is_valid = self.iter.key() < key,
-            Bound::Unbounded => {}
-        }
-
-        Ok(())
-    }
-
-    fn skip_delete(&mut self) -> Result<()> {
-        while self.is_valid && self.key().is_empty() {
-            self.next_inner()?;
-        }
-
+        self.move_to_non_delete()?;
         Ok(())
     }
 }
@@ -104,7 +97,8 @@ impl<I: StorageIterator> StorageIterator for FusedIterator<I> {
     }
 
     fn next(&mut self) -> Result<()> {
-        if self.is_valid() {
+        // only move when the iterator is valid
+        if self.iter.is_valid() {
             self.iter.next()?;
         }
         Ok(())
