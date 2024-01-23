@@ -115,8 +115,6 @@ mod tests {
 
         let mut ssbuilder = SsTableBuilder::new(4096);
         ssbuilder.add(b"1", b"423424");
-        ssbuilder.add(b"1", b"423424");
-        ssbuilder.add(b"1", b"423424");
 
         ssbuilder.add(b"3", b"111");
         ssbuilder.add(b"4", b"3333");
@@ -127,20 +125,20 @@ mod tests {
         let mut sst_iter = SsTableIterator::create_and_seek_to_first(Arc::new(table))?;
         
         
-        // let mut two_merger_iter = TwoMergeIterator::create(mem_iter, sst_iter)?;
+        let mut two_merger_iter = TwoMergeIterator::create(mem_iter, sst_iter)?;
         
-        loop {
-            println!("key {:?} : value {:?}", as_bytes(sst_iter.key()), as_bytes(sst_iter.value()));
-            if !sst_iter.is_valid() {
-                break;
-            }
-            sst_iter.next();
-        }
-
-        // while two_merger_iter.is_valid() {
-        //     println!("key {:?} : value {:?}", as_bytes(two_merger_iter.key()), as_bytes(two_merger_iter.value()));
-        //     two_merger_iter.next();
+        // loop {
+        //     println!("key {:?} : value {:?}", as_bytes(sst_iter.key()), as_bytes(sst_iter.value()));
+        //     if !sst_iter.is_valid() {
+        //         break;
+        //     }
+        //     sst_iter.next();
         // }
+
+        while two_merger_iter.is_valid() {
+            println!("key {:?} : value {:?}", as_bytes(two_merger_iter.key()), as_bytes(two_merger_iter.value()));
+            two_merger_iter.next();
+        }
         Ok(())
     }   
 }

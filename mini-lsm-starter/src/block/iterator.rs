@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Borrow, sync::Arc};
 
 use super::Block;
 
@@ -15,6 +15,7 @@ pub struct BlockIterator {
 
     nums_of_elements: usize,
 
+    is_valid: bool,
 }
 
 impl BlockIterator {
@@ -25,6 +26,7 @@ impl BlockIterator {
             value: Vec::new(),
             idx: 0,
             nums_of_elements: 0,
+            is_valid: true,
         }
     }
 
@@ -38,6 +40,7 @@ impl BlockIterator {
             value,
             idx: 0,
             nums_of_elements,
+            is_valid: true,
         }
     }
 
@@ -52,6 +55,7 @@ impl BlockIterator {
             value,
             idx, 
             nums_of_elements,
+            is_valid: true,
         }
     }
 
@@ -68,7 +72,7 @@ impl BlockIterator {
     /// Returns true if the iterator is valid.
     /// Note: You may want to make use of `key`
     pub fn is_valid(&self) -> bool {
-        self.idx + 1 < self.nums_of_elements
+        self.is_valid
     }
 
     /// Seeks to the first key in the block.
@@ -79,26 +83,31 @@ impl BlockIterator {
         self.key = key;
         self.value = value;
         self.idx = 0;
+        self.is_valid = true;
     }
 
     /// Move to the next key in the block.
     pub fn next(&mut self) {
         if !self.is_valid() { return; }
 
-        let (key, value) =
-            BlockIterator::seek_kv_within_index(self.block.clone(), self.idx + 1);
-        self.key = key;
-        self.value = value;
         self.idx += 1;
+        if self.idx < self.nums_of_elements {
+            let (key, value) =
+            BlockIterator::seek_kv_within_index(self.block.clone(), self.idx);
+            self.key = key;
+            self.value = value;
+        } else {
+            self.is_valid = false;
+        }
     }
 
-    pub fn next_without_check(&mut self) {
-        let (key, value) =
-        BlockIterator::seek_kv_within_index(self.block.clone(), self.idx + 1);
-        self.key = key;
-        self.value = value;
-        self.idx += 1;
-    }
+    // pub fn next_without_check(&mut self) {
+    //     let (key, value) =
+    //     BlockIterator::seek_kv_within_index(self.block.clone(), self.idx + 1);
+    //     self.key = key;
+    //     self.value = value;
+    //     self.idx += 1;
+    // }
 
     /// Seek to the first key that >= `key`.
     /// Note: You should assume the key-value pairs in the block are sorted when being added by callers.
@@ -134,7 +143,7 @@ impl BlockIterator {
             }
         }
 
-        // if key greater than max element in the block, we return last(max) elems in the block
+        // if key greater than max element in the block, we return max elems in the block
         if left >= elem_num { left = elem_num - 1; }
         (result_key, value) = BlockIterator::seek_kv_within_index(block.clone(), left);
         (result_key, value, left)
