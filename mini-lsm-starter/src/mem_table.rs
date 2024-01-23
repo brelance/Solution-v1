@@ -25,17 +25,18 @@ impl MemTable {
     /// Get a value by key.
     pub fn get(&self, key: &[u8]) -> Option<Bytes> {
         //Debug
-        println!("[MemIetrator Debug]: Get value from key {:?}", as_bytes(key));
+        // println!("[MemIetrator Debug]: Get value from key {:?}", as_bytes(key));
         self.map.get(key).map(|entry| entry.value().clone())
     }
 
     /// Put a key-value pair into the mem-table.
     pub fn put(&self, key: &[u8], value: &[u8]) {
-        if value.is_empty() {
-            println!("[MemIetrator Debug]: Delete key {:?} : value {:?}", as_bytes(key), as_bytes(value));
-        } else {
-            println!("[MemIetrator Debug]: Put key {:?} : value {:?}", as_bytes(key), as_bytes(value));
-        }
+        // Debug
+        // if value.is_empty() {
+        //     println!("[MemIetrator Debug]: Delete key {:?} : value {:?}", as_bytes(key), as_bytes(value));
+        // } else {
+        //     println!("[MemIetrator Debug]: Put key {:?} : value {:?}", as_bytes(key), as_bytes(value));
+        // }
 
         self.map.insert(Bytes::copy_from_slice(key), Bytes::copy_from_slice(value));
 

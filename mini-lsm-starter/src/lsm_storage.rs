@@ -201,8 +201,8 @@ impl LsmStorage {
                 }
                 Bound::Excluded(key) => {
                     let mut iter = SsTableIterator::create_and_seek_to_key(table.clone(), key)?;
-                    println!("[fun scan Debug]: key {:?} : value {:?}", as_bytes(iter.key()), as_bytes(iter.value()));
-                    println!("[fun scan Debug]: is_valid {:?}", iter.is_valid());
+                    // println!("[fun scan Debug]: key {:?} : value {:?}", as_bytes(iter.key()), as_bytes(iter.value()));
+                    // println!("[fun scan Debug]: is_valid {:?}", iter.is_valid());
                     
                     if iter.is_valid() && iter.key() == key {
                         iter.next()?;

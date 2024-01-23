@@ -92,7 +92,7 @@ impl SsTableIterator {
         while self.is_valid() {
             let key = self.key();
             let value = self.value();
-            println!("[SstableIterator Debug]: Contain key: {:?} : value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
+            // println!("[SstableIterator Debug]: Contain key: {:?} : value: {:?}",  Self::as_bytes(key), Self::as_bytes(value));
             self.next();
         }
 
