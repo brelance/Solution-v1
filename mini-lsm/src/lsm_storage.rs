@@ -138,7 +138,7 @@ impl LsmStorage {
         let _flush_lock = self.flush_lock.lock();
 
         let flush_memtable;
-        let sst_id;
+        let sst_id: usize;
 
         // Move mutable memtable to immutable memtables.
         {

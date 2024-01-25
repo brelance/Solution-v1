@@ -103,7 +103,7 @@ impl BlockIterator {
         let mut low = 0;
         let mut high = self.block.offsets.len();
         while low < high {
-            let mid = low + (high - low) / 2;
+            let mid: usize = low + (high - low) / 2;
             self.seek_to(mid);
             assert!(self.is_valid());
             match self.key().cmp(key) {

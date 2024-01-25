@@ -1,23 +1,19 @@
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
-use std::ops::{Bound};
+use std::ops::Bound;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 use bytes::Bytes;
-use parking_lot::{RwLock, Mutex};
-use crate::debug::as_bytes;
+use parking_lot::{Mutex, RwLock};
 
 use crate::block::Block;
 use crate::iterators::merge_iterator::MergeIterator;
 use crate::iterators::two_merge_iterator::TwoMergeIterator;
 use crate::iterators::StorageIterator;
 use crate::lsm_iterator::{FusedIterator, LsmIterator};
-use crate::mem_table::{map_bound, MemTable, MemTableIterator};
-use crate::table::{SsTable, SsTableIterator, SsTableBuilder};
+use crate::mem_table::{map_bound, MemTable};
+use crate::table::{SsTable, SsTableBuilder, SsTableIterator};
 
 pub type BlockCache = moka::sync::Cache<(usize, usize), Arc<Block>>;
 
@@ -45,13 +41,12 @@ impl LsmStorageInner {
     }
 }
 
-/// The storage interface of the LSM tree.
 pub struct LsmStorage {
-    inner: Arc<RwLock<Arc<LsmStorageInner>>>,
+    pub(crate) inner: Arc<RwLock<Arc<LsmStorageInner>>>,
     flush_lock: Mutex<()>,
-    block_cache: Arc<BlockCache>,
-    next_sst_id: AtomicUsize,
     path: PathBuf,
+    pub(crate) block_cache: Arc<BlockCache>,
+    next_sst_id: AtomicUsize,
 }
 
 impl LsmStorage {
@@ -188,7 +183,7 @@ impl LsmStorage {
         memtable_iters.push(Box::new(snapshot.memtable.scan(lower, upper)));
         
         for memtable in snapshot.imm_memtables.iter().rev() {
-            let mut iter: MemTableIterator = memtable.scan(lower, upper);
+            let mut iter = memtable.scan(lower, upper);
             memtable_iters.push(Box::new(memtable.scan(lower, upper)));
         }
         let memtable_iter = MergeIterator::create(memtable_iters);
