@@ -42,11 +42,11 @@ impl LsmIterator {
             Bound::Unbounded => {}
             Bound::Included(key) => {
                 self.is_valid = self.iter.key() <= key.as_ref();
-                println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
+                // println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
             },
             Bound::Excluded(key) => {
                 self.is_valid = self.iter.key() < key.as_ref();
-                println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
+                // println!("[LsmIterator Debug]: key from LsmIterator {:?}, end bound: {:?}", as_bytes(self.iter.key()), key);
             },
         }
         Ok(())
